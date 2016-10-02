@@ -102,3 +102,161 @@ pub mod funct7 {
     pub const OR   : u8 = 0b0000000;
     pub const AND  : u8 = 0b0000000;
 }
+
+pub mod mul_div {
+    pub mod funct3 {
+        pub const MUL    : u8 = 0b000;
+        pub const MULH   : u8 = 0b001;
+        pub const MULHSU : u8 = 0b010;
+        pub const MULHU  : u8 = 0b011;
+        pub const DIV    : u8 = 0b100;
+        pub const DIVU   : u8 = 0b101;
+        pub const REM    : u8 = 0b110;
+        pub const REMU   : u8 = 0b111;
+    }
+
+    pub mod funct7 {
+        pub const MUL    : u8 = 0b0000001;
+        pub const MULH   : u8 = 0b0000001;
+        pub const MULHSU : u8 = 0b0000001;
+        pub const MULHU  : u8 = 0b0000001;
+        pub const DIV    : u8 = 0b0000001;
+        pub const DIVU   : u8 = 0b0000001;
+        pub const REM    : u8 = 0b0000001;
+        pub const REMU   : u8 = 0b0000001;
+    }
+}
+
+pub mod amo {
+    pub mod funct3 {
+        pub const LR_W      : u8 = 0b010;
+        pub const SC_W      : u8 = 0b010;
+        pub const AMOSWAP_W : u8 = 0b010;
+        pub const AMOADD_W  : u8 = 0b010;
+        pub const AMOXOR_W  : u8 = 0b010;
+        pub const AMOAND_W  : u8 = 0b010;
+        pub const AMOOR_W   : u8 = 0b010;
+        pub const AMOMIN_W  : u8 = 0b010;
+        pub const AMOMAX_W  : u8 = 0b010;
+        pub const AMOMINU_W : u8 = 0b010;
+        pub const AMOMAXU_W : u8 = 0b010;
+    }
+
+    pub mod funct5 {
+        pub const LR_W      : u8 = 0b00010;
+        pub const SC_W      : u8 = 0b00011;
+        pub const AMOSWAP_W : u8 = 0b00001;
+        pub const AMOADD_W  : u8 = 0b00000;
+        pub const AMOXOR_W  : u8 = 0b00100;
+        pub const AMOAND_W  : u8 = 0b01100;
+        pub const AMOOR_W   : u8 = 0b01000;
+        pub const AMOMIN_W  : u8 = 0b10000;
+        pub const AMOMAX_W  : u8 = 0b10100;
+        pub const AMOMINU_W : u8 = 0b11000;
+        pub const AMOMAXU_W : u8 = 0b11100;
+    }
+
+}
+
+pub mod single_fp {
+    pub mod funct3 {
+        pub const FLW      : u8 = 0b010;
+        pub const FSW      : u8 = 0b010;
+        pub const FSGNJ_S  : u8 = 0b000;
+        pub const FSGNJN_S : u8 = 0b001;
+        pub const FSGNJX_S : u8 = 0b010;
+        pub const FMIN_S   : u8 = 0b000;
+        pub const FMAX_S   : u8 = 0b001;
+        pub const FMV_X_S  : u8 = 0b000;
+        pub const FEQ_S    : u8 = 0b010;
+        pub const FLT_S    : u8 = 0b001;
+        pub const FLE_S    : u8 = 0b000;
+        pub const FCLASS_S : u8 = 0b001;
+        pub const FMV_S_X  : u8 = 0b000;
+    }
+
+    pub mod rs2 {
+        pub const FSQRT_S   : u8 = 0b00000;
+        pub const FCVT_W_S  : u8 = 0b00000;
+        pub const FCVT_WU_S : u8 = 0b00001;
+        pub const FMV_X_S   : u8 = 0b00000;
+        pub const FCLASS_S  : u8 = 0b00000;
+        pub const FCVT_S_W  : u8 = 0b00000;
+        pub const FCVT_S_WU : u8 = 0b00001;
+        pub const FMV_S_X   : u8 = 0b00000;
+    }
+
+    pub mod funct7 {
+        pub const FADD_S    : u8 = 0b0000000;
+        pub const FSUB_S    : u8 = 0b0000100;
+        pub const FMUL_S    : u8 = 0b0001000;
+        pub const FDIV_S    : u8 = 0b0001100;
+        pub const FSQRT_S   : u8 = 0b0101100;
+        pub const FSGNJ_S   : u8 = 0b0010000;
+        pub const FSGNJN_S  : u8 = 0b0010000;
+        pub const FSGNJX_S  : u8 = 0b0010000;
+        pub const FMIN_S    : u8 = 0b0010100;
+        pub const FMAX_S    : u8 = 0b0010100;
+        pub const FCVT_W_S  : u8 = 0b1100000;
+        pub const FCVT_WU_S : u8 = 0b1100000;
+        pub const FMV_X_S   : u8 = 0b1110000;
+        pub const FEQ_S     : u8 = 0b1010000;
+        pub const FLT_S     : u8 = 0b1010000;
+        pub const FLE_S     : u8 = 0b1010000;
+        pub const FCLASS_S  : u8 = 0b1110000;
+        pub const FCVT_S_W  : u8 = 0b1101000;
+        pub const FCVT_S_WU : u8 = 0b1101000;
+        pub const FMV_S_X   : u8 = 0b1111000;
+    }
+
+}
+
+pub mod double_fp {
+    pub mod funct3 {
+        pub const FLD      : u8 = 0b011;
+        pub const FSD      : u8 = 0b011;
+        pub const FSGNJ_D  : u8 = 0b000;
+        pub const FSGNJN_D : u8 = 0b001;
+        pub const FSGNJX_D : u8 = 0b010;
+        pub const FMIN_D   : u8 = 0b000;
+        pub const FMAX_D   : u8 = 0b001;
+        pub const FEQ_D    : u8 = 0b010;
+        pub const FLT_D    : u8 = 0b001;
+        pub const FLE_D    : u8 = 0b000;
+        pub const FCLASS_D : u8 = 0b001;
+    }
+
+    pub mod rs2 {
+        pub const FSQRT_D   : u8 = 0b00000;
+        pub const FCVT_S_D  : u8 = 0b00001;
+        pub const FCVT_D_S  : u8 = 0b00000;
+        pub const FCLASS_D  : u8 = 0b00000;
+        pub const FCVT_W_D  : u8 = 0b00000;
+        pub const FCVT_WU_D : u8 = 0b00001;
+        pub const FCVT_D_W  : u8 = 0b00000;
+        pub const FCVT_D_WU : u8 = 0b00001;
+    }
+
+    pub mod funct7 {
+        pub const FADD_D    : u8 = 0b0000001;
+        pub const FSUB_D    : u8 = 0b0000101;
+        pub const FMUL_D    : u8 = 0b0001001;
+        pub const FDIV_D    : u8 = 0b0001101;
+        pub const FSQRT_D   : u8 = 0b0101101;
+        pub const FSGNJ_D   : u8 = 0b0010001;
+        pub const FSGNJN_D  : u8 = 0b0010001;
+        pub const FSGNJX_D  : u8 = 0b0010001;
+        pub const FMIN_D    : u8 = 0b0010101;
+        pub const FMAX_D    : u8 = 0b0010101;
+        pub const FCVT_S_D  : u8 = 0b0100000;
+        pub const FCVT_D_S  : u8 = 0b0100001;
+        pub const FEQ_D     : u8 = 0b1010001;
+        pub const FLT_D     : u8 = 0b1010001;
+        pub const FLE_D     : u8 = 0b1010001;
+        pub const FCLASS_D  : u8 = 0b1110001;
+        pub const FCVT_W_D  : u8 = 0b1100001;
+        pub const FCVT_WU_D : u8 = 0b1100001;
+        pub const FCVT_D_W  : u8 = 0b1101001;
+        pub const FCVT_D_WU : u8 = 0b1101001;
+    }
+}
