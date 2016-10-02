@@ -88,5 +88,17 @@ pub mod funct3 {
 }
 
 pub mod funct7 {
-
+    pub const SLLI : u8 = 0b0000000;
+    pub const SRLI : u8 = 0b0000000;
+    pub const SRAI : u8 = 0b0100000;
+    pub const ADD  : u8 = 0b0000000;
+    pub const SUB  : u8 = 0b0100000;
+    pub const SLL  : u8 = 0b0000000;
+    pub const SLT  : u8 = 0b0000000;
+    pub const SLTU : u8 = 0b0000000;
+    pub const XOR  : u8 = 0b0000000;
+    pub const SRL  : u8 = 0b0000000;
+    pub const SRA  : u8 = 0b0100000;
+    pub const OR   : u8 = 0b0000000;
+    pub const AND  : u8 = 0b0000000;
 }
