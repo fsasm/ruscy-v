@@ -9,6 +9,7 @@
 use super::constants::*;
 
 /* all immeadiates are already shifted */
+#[derive(PartialEq, Debug)]
 pub enum Instruction {
     LUI {rd: u8, imm: i32},
     AUIPC {rd: u8, imm: i32},
@@ -64,7 +65,7 @@ fn get_i_imm12(word : u32) -> i16 {
     if word < 0x0800 {
         word as i16
     } else {
-        let pos = ((!word) + 1) & 0x07FF;
+        let pos = ((!word) + 1) & 0x0FFF;
         -(pos as i16)
     }
 }
@@ -77,7 +78,7 @@ fn get_s_imm12(word : u32) -> i16 {
     if imm < 0x0800 {
         imm as i16
     } else {
-        let pos = ((!imm) + 1) & 0x07FF;
+        let pos = ((!imm) + 1) & 0x0FFF;
         -(pos as i16)
     }
 }
@@ -112,12 +113,6 @@ fn get_jal_imm20(word: u32) -> i32 {
     }
 }
 
-#[test]
-fn working_get_i_imm12 () {
-    assert_eq!(get_i_imm12(0), 0);
-    assert_eq!(get_i_imm12(0xFFFFFFFF), -1);
-}
-
 impl Instruction {
     pub fn decode32(instr : u32) -> Result<Instruction, ()> {
         if (instr & 0x03) != 0x03 {
@@ -141,20 +136,20 @@ impl Instruction {
             (opcode::AUIPC, _, _) => Ok(Instruction::AUIPC {rd: rd, imm: (instr & 0xFFFFF000) as i32}), 
             (opcode::JAL, _, _) => Ok(Instruction::JAL {rd: rd, imm: jal_imm20}), 
             (opcode::JALR, funct3::JALR, _) => Ok(Instruction::JALR {rd: rd, rs1: rs1, imm: i_imm12}), 
-            (opcode::BRANCH, funct3::BEQ, _) => Ok(Instruction::BEQ {rs1: rs1, rs2: rs2, imm: s_imm12}),
-            (opcode::BRANCH, funct3::BNE, _) => Ok(Instruction::BNE {rs1: rs1, rs2: rs2, imm: s_imm12}),
-            (opcode::BRANCH, funct3::BLT, _) => Ok(Instruction::BLT {rs1: rs1, rs2: rs2, imm: s_imm12}),
-            (opcode::BRANCH, funct3::BGE, _) => Ok(Instruction::BGE {rs1: rs1, rs2: rs2, imm: s_imm12}),
-            (opcode::BRANCH, funct3::BLTU, _) => Ok(Instruction::BLTU {rs1: rs1, rs2: rs2, imm: s_imm12}),
-            (opcode::BRANCH, funct3::BGEU, _) => Ok(Instruction::BGEU {rs1: rs1, rs2: rs2, imm: s_imm12}),
+            (opcode::BRANCH, funct3::BEQ, _) => Ok(Instruction::BEQ {rs1: rs1, rs2: rs2, imm: sb_imm12}),
+            (opcode::BRANCH, funct3::BNE, _) => Ok(Instruction::BNE {rs1: rs1, rs2: rs2, imm: sb_imm12}),
+            (opcode::BRANCH, funct3::BLT, _) => Ok(Instruction::BLT {rs1: rs1, rs2: rs2, imm: sb_imm12}),
+            (opcode::BRANCH, funct3::BGE, _) => Ok(Instruction::BGE {rs1: rs1, rs2: rs2, imm: sb_imm12}),
+            (opcode::BRANCH, funct3::BLTU, _) => Ok(Instruction::BLTU {rs1: rs1, rs2: rs2, imm: sb_imm12}),
+            (opcode::BRANCH, funct3::BGEU, _) => Ok(Instruction::BGEU {rs1: rs1, rs2: rs2, imm: sb_imm12}),
             (opcode::LOAD, funct3::LB, _) => Ok(Instruction::LB {rd: rd, rs1: rs1, imm: i_imm12}), 
             (opcode::LOAD, funct3::LH, _) => Ok(Instruction::LH {rd: rd, rs1: rs1, imm: i_imm12}), 
             (opcode::LOAD, funct3::LW, _) => Ok(Instruction::LW {rd: rd, rs1: rs1, imm: i_imm12}), 
             (opcode::LOAD, funct3::LBU, _) => Ok(Instruction::LBU {rd: rd, rs1: rs1, imm: i_imm12}), 
             (opcode::LOAD, funct3::LHU, _) => Ok(Instruction::LHU {rd: rd, rs1: rs1, imm: i_imm12}), 
-            (opcode::STORE, funct3::SB, _) => Ok(Instruction::SB {rs1: rs1, rs2: rs2, imm: sb_imm12}),
-            (opcode::STORE, funct3::SH, _) => Ok(Instruction::SH {rs1: rs1, rs2: rs2, imm: sb_imm12}),
-            (opcode::STORE, funct3::SW, _) => Ok(Instruction::SW {rs1: rs1, rs2: rs2, imm: sb_imm12}),
+            (opcode::STORE, funct3::SB, _) => Ok(Instruction::SB {rs1: rs1, rs2: rs2, imm: s_imm12}),
+            (opcode::STORE, funct3::SH, _) => Ok(Instruction::SH {rs1: rs1, rs2: rs2, imm: s_imm12}),
+            (opcode::STORE, funct3::SW, _) => Ok(Instruction::SW {rs1: rs1, rs2: rs2, imm: s_imm12}),
             (opcode::OP_IMM, funct3::ADDI, _) => Ok(Instruction::ADDI {rd: rd, rs1: rs1, imm: i_imm12}),
             (opcode::OP_IMM, funct3::SLTI, _) => Ok(Instruction::SLTI {rd: rd, rs1: rs1, imm: i_imm12}),
             (opcode::OP_IMM, funct3::SLTIU, _) => Ok(Instruction::SLTIU {rd: rd, rs1: rs1, imm: i_imm12}),
@@ -204,3 +199,80 @@ impl Instruction {
     }
 }
 
+#[cfg(test)]
+mod test {
+    use super::{Instruction, get_i_imm12, get_s_imm12};
+
+    #[test]
+    fn test_decode32() {
+        // LB x14, 267(x3)
+        assert_eq!(Instruction::decode32(0x10B18703), Ok(Instruction::LB{rd: 14, rs1: 3, imm: 267}));
+    
+        // ADDI x30, x20, -1036
+        assert_eq!(Instruction::decode32(0xBF4A0F13), Ok(Instruction::ADDI{rd: 30, rs1: 20, imm: -1036}));
+    
+        // ORI x10, x12, -33
+        assert_eq!(Instruction::decode32(0xFDF66513), Ok(Instruction::ORI{rd: 10, rs1: 12, imm: -33}));
+    
+        // SB x18, -1654(x6)
+        assert_eq!(Instruction::decode32(0x99230523), Ok(Instruction::SB{rs1: 6, rs2: 18, imm: -1654}));
+    
+        // SH x27, -1069(x21)
+        assert_eq!(Instruction::decode32(0xBDBA99A3), Ok(Instruction::SH{rs1: 21, rs2: 27, imm: -1069}));
+    
+        // SW x5, 1951(x8)
+        assert_eq!(Instruction::decode32(0x78542FA3), Ok(Instruction::SW{rs1: 8, rs2: 5, imm: 1951}));
+    }
+
+    #[test]
+    fn test_get_i_imm12 () {
+        assert_eq!(get_i_imm12(0x00000000), 0);
+        assert_eq!(get_i_imm12(0x00100000), 1);
+        assert_eq!(get_i_imm12(0x00200000), 2);
+        assert_eq!(get_i_imm12(0xFFFFFFFF), -1);
+        assert_eq!(get_i_imm12(0xFFF00000), -1);
+        assert_eq!(get_i_imm12(0xFFE00000), -2);
+        assert_eq!(get_i_imm12(0xFFD00000), -3);
+        assert_eq!(get_i_imm12(0x80000000), -2048);
+        assert_eq!(get_i_imm12(0x7FF00000), 2047);
+        assert_eq!(get_i_imm12(0x80100000), -2047);
+        assert_eq!(get_i_imm12(0x7FE00000), 2046);
+        assert_eq!(get_i_imm12(0xAAA00000), -1366);
+        assert_eq!(get_i_imm12(0x55500000), 1365);
+    
+        // LB x14, 267(x3)
+        assert_eq!(get_i_imm12(0x10B18703), 267);
+    
+        // ADDI x30, x20, -1036
+        assert_eq!(get_i_imm12(0xBF4A0F13), -1036);
+    
+        // ORI x10, x12, -33
+        assert_eq!(get_i_imm12(0xFDF66513), -33);
+    }
+    
+    #[test]
+    fn test_get_s_imm12 () {
+        assert_eq!(get_s_imm12(0x00000000), 0);
+        assert_eq!(get_s_imm12(0x00000080), 1);
+        assert_eq!(get_s_imm12(0x00000100), 2);
+        assert_eq!(get_s_imm12(0xFFFFFFFF), -1);
+        assert_eq!(get_s_imm12(0xFE000F80), -1);
+        assert_eq!(get_s_imm12(0xFE000F00), -2);
+        assert_eq!(get_s_imm12(0xFE000E80), -3);
+        assert_eq!(get_s_imm12(0x80000000), -2048);
+        assert_eq!(get_s_imm12(0x7E000F80), 2047);
+        assert_eq!(get_s_imm12(0x80000080), -2047);
+        assert_eq!(get_s_imm12(0x7E000F00), 2046);
+        assert_eq!(get_s_imm12(0xAA000500), -1366);
+        assert_eq!(get_s_imm12(0x54000A80), 1365);
+    
+        // SB x18, -1654(x6)
+        assert_eq!(get_s_imm12(0x99230523), -1654);
+    
+        // SH x27, -1069(x21)
+        assert_eq!(get_s_imm12(0xBDBA99A3), -1069);
+    
+        // SW x5, 1951(x8)
+        assert_eq!(get_s_imm12(0x78542FA3), 1951);
+    }
+}
