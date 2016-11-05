@@ -84,31 +84,32 @@ fn get_s_imm12(word : u32) -> i16 {
 }
 
 fn get_sb_imm12(word : u32) -> i16 {
-    let imm4 = (word >> 7) & 0x1E;
-    let imm11 = (word >> 25) & 0x3F;
-    let imm12 = (word >> 7) & 0x01;
-    let imm13 = word >> 31;
-    let imm = (imm13 << 13) | (imm12 << 12) | (imm11 << 6) | imm4;
+    let imm4 = (word >> 8) & 0x0F;
+    let imm10 = (word >> 25) & 0x3F;
+    let imm11 = (word >> 7) & 0x01;
+    let imm12 = word >> 31;
+    //println!("{:x} {:x} {:x} {:x}", imm12, imm11, imm10, imm4);
+    let imm = (imm12 << 12) | (imm11 << 11) | (imm10 << 5) | (imm4 << 1);
 
-    if imm < 0x1000 {
+    if imm12 == 0 {
         imm as i16
     } else {
-        let pos = ((!imm) + 1) & 0x0FFF;
+        let pos = ((!imm) + 1) & 0x1FFE;
         -(pos as i16)
     }
 }
 
 fn get_jal_imm20(word: u32) -> i32 {
-    let imm10 = (word >> 21) & 0x07FE;
+    let imm10 = (word >> 21) & 0x03FF;
     let imm11 = (word >> 20) & 0x01;
     let imm19 = (word >> 12) & 0xFF;
     let imm20 = (word >> 31) & 0x01;
-    let imm = (imm20 << 20) | (imm19 << 12) | (imm11 << 11) | imm10;
+    let imm = (imm20 << 20) | (imm19 << 12) | (imm11 << 11) | (imm10 << 1);
 
     if imm20 == 0 {
         imm as i32
     } else {
-        let pos = ((!imm) + 1) & 0x0FFFFF;
+        let pos = ((!imm) + 1) & 0x1FFFFF;
         -(pos as i32)
     }
 }
@@ -201,7 +202,7 @@ impl Instruction {
 
 #[cfg(test)]
 mod test {
-    use super::{Instruction, get_i_imm12, get_s_imm12};
+    use super::{Instruction, get_i_imm12, get_s_imm12, get_sb_imm12, get_jal_imm20};
 
     #[test]
     fn test_decode32() {
@@ -222,6 +223,18 @@ mod test {
     
         // SW x5, 1951(x8)
         assert_eq!(Instruction::decode32(0x78542FA3), Ok(Instruction::SW{rs1: 8, rs2: 5, imm: 1951}));
+
+        // BEQ x19, x14, 438
+        assert_eq!(Instruction::decode32(0x36E98663), Ok(Instruction::BEQ{rs1: 19, rs2: 14, imm: 876}));
+
+        // BGE x7, x11, 2015
+        assert_eq!(Instruction::decode32(0x7AB3DFE3), Ok(Instruction::BGE{rs1: 7, rs2: 11, imm: 4030}));
+
+        // BLTU x17, x6, -885
+        assert_eq!(Instruction::decode32(0x9108EBE3), Ok(Instruction::BLTU{rs1: 17, rs2: 16, imm: -1770}));
+
+        // JAL x9, -1760(-3520)
+        assert_eq!(Instruction::decode32(0xA40FF4EF), Ok(Instruction::JAL{rd: 9, imm: -3520}));
     }
 
     #[test]
@@ -274,5 +287,83 @@ mod test {
     
         // SW x5, 1951(x8)
         assert_eq!(get_s_imm12(0x78542FA3), 1951);
+    }
+
+    #[test]
+    fn test_get_sb_imm12 () {
+        assert_eq!(get_sb_imm12(0x00000000), 0);
+        assert_eq!(get_sb_imm12(0x00000100), 2);
+        assert_eq!(get_sb_imm12(0x00000200), 4);
+        assert_eq!(get_sb_imm12(0x00000300), 6);
+        assert_eq!(get_sb_imm12(0x00000700), 14);
+        assert_eq!(get_sb_imm12(0x00000F00), 30);
+        assert_eq!(get_sb_imm12(0x02000F00), 62);
+        assert_eq!(get_sb_imm12(0x06000F00), 126);
+        assert_eq!(get_sb_imm12(0x0E000F00), 254);
+        assert_eq!(get_sb_imm12(0x1E000F00), 510);
+        assert_eq!(get_sb_imm12(0x3E000F00), 1022);
+        assert_eq!(get_sb_imm12(0x7E000F00), 2046);
+        assert_eq!(get_sb_imm12(0x7E000F80), 4094);
+        assert_eq!(get_sb_imm12(0xFE000F80), -2);
+        assert_eq!(get_sb_imm12(0xFE000E80), -4);
+        assert_eq!(get_sb_imm12(0xFE000D80), -6);
+        assert_eq!(get_sb_imm12(0xFE000C80), -8);
+        assert_eq!(get_sb_imm12(0xD4000A00), -1366 * 2);
+        assert_eq!(get_sb_imm12(0x2A000580), 1365 * 2);
+        assert_eq!(get_sb_imm12(0x80000000), -4096);
+
+        // BEQ x19, x14, 438(876)
+        assert_eq!(get_sb_imm12(0x36E98663), 876);
+
+        // BGE x7, x11, 2015(4030)
+        assert_eq!(get_sb_imm12(0x7AB3DFE3), 4030);
+
+        // BLTU x17, x16, -885(-1770)
+        assert_eq!(get_sb_imm12(0x9108EBE3), -1770);
+    }
+
+    #[test]
+    fn test_get_jal_imm20() {
+        assert_eq!(get_jal_imm20(0x00000000), 0);
+        assert_eq!(get_jal_imm20(0x00200000), 2);
+        assert_eq!(get_jal_imm20(0x00400000), 4);
+        assert_eq!(get_jal_imm20(0x00600000), 6);
+        assert_eq!(get_jal_imm20(0x00E00000), 14);
+        assert_eq!(get_jal_imm20(0x01E00000), 30);
+        assert_eq!(get_jal_imm20(0x03E00000), 62);
+        assert_eq!(get_jal_imm20(0x07E00000), 126);
+        assert_eq!(get_jal_imm20(0x0FE00000), 254);
+        assert_eq!(get_jal_imm20(0x1FE00000), 510);
+        assert_eq!(get_jal_imm20(0x3FE00000), 1022);
+        assert_eq!(get_jal_imm20(0x7FE00000), 2046);
+        assert_eq!(get_jal_imm20(0x7FF00000), 4094);
+        assert_eq!(get_jal_imm20(0x7FF01000), 8190);
+        assert_eq!(get_jal_imm20(0x7FF03000), 16382);
+        assert_eq!(get_jal_imm20(0x7FF07000), 32766);
+        assert_eq!(get_jal_imm20(0x7FF0F000), 65534);
+        assert_eq!(get_jal_imm20(0x7FF1F000), 131070);
+        assert_eq!(get_jal_imm20(0x7FF3F000), 262142);
+        assert_eq!(get_jal_imm20(0x7FF7F000), 524286);
+        assert_eq!(get_jal_imm20(0x7FFFF000), 1048574);
+        assert_eq!(get_jal_imm20(0xFFFFF000), -2);
+        assert_eq!(get_jal_imm20(0xFFDFF000), -4);
+        assert_eq!(get_jal_imm20(0xFFBFF000), -6);
+        assert_eq!(get_jal_imm20(0xFF9FF000), -8);
+        assert_eq!(get_jal_imm20(0x2ABAA000), 349525 * 2);
+        assert_eq!(get_jal_imm20(0xD5455000), -349526 * 2);
+        assert_eq!(get_jal_imm20(0x80000000), -1048576);
+        assert_eq!(get_jal_imm20(0x80200000), -1048574);
+        assert_eq!(get_jal_imm20(0x80400000), -1048572);
+        assert_eq!(get_jal_imm20(0x80600000), -1048570);
+
+
+        // JAL x9, -1760(-3520)
+        assert_eq!(get_jal_imm20(0xA40FF4EF), -3520);
+    }
+
+    #[test]
+    fn test_lui() {
+        assert_eq!((0xFFFFFFFFu32 & 0xFFFFF000u32) as i32, -4096);
+        assert_eq!((0x80000000u32 & 0xFFFFF000u32) as i32, -2147483648);
     }
 }
