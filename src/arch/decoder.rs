@@ -8,9 +8,21 @@
 
 use super::constants::*;
 
+#[derive(PartialEq, Debug)]
+pub enum FpRoundingMode {
+    RoundToNearest,
+    RoundTowardsZero,
+    RoundDown,
+    RoundUp,
+    RoundToNearestTieMaxMagnitude,
+    DynamicRounding,
+    Invalid
+}
+
 /* all immeadiates are already shifted */
 #[derive(PartialEq, Debug)]
 pub enum Instruction {
+    /* RV32I */
     LUI {rd: u8, imm: i32},
     AUIPC {rd: u8, imm: i32},
     JAL {rd: u8, imm: i32},
@@ -57,7 +69,134 @@ pub enum Instruction {
     CSRRC {rd: u8, rs1: u8, csr: u16},
     CSRRWI {rd: u8, zimm: u8, csr: u16},
     CSRRSI {rd: u8, zimm: u8, csr: u16},
-    CSRRCI {rd: u8, zimm: u8, csr: u16}
+    CSRRCI {rd: u8, zimm: u8, csr: u16},
+
+    /* RV64I */
+    LWU {rd: u8, rs1: u8, imm: i16},
+    LD {rd: u8, rs1: u8, imm: i16},
+    SD {rd: u8, rs1: u8, imm: i16},
+    ADDIW {rd: u8, rs1: u8, imm: i16},
+    SLLIW {rd: u8, rs1: u8, shamt: u8},
+    SRLIW {rd: u8, rs1: u8, shamt: u8},
+    SRAIW {rd: u8, rs1: u8, shamt: u8},
+    ADDW {rd: u8, rs1: u8, rs2: u8},
+    SUBW {rd: u8, rs1: u8, rs2: u8},
+    SLLW {rd: u8, rs1: u8, rs2: u8},
+    SRLW {rd: u8, rs1: u8, rs2: u8},
+    SRAW {rd: u8, rs1: u8, rs2: u8},
+
+    /* RV32M */
+    MUL {rd: u8, rs1: u8, rs2: u8},
+    MULH {rd: u8, rs1: u8, rs2: u8},
+    MULHSU {rd: u8, rs1: u8, rs2: u8},
+    MULHU {rd: u8, rs1: u8, rs2: u8},
+    DIV {rd: u8, rs1: u8, rs2: u8},
+    DIVU {rd: u8, rs1: u8, rs2: u8},
+    REM {rd: u8, rs1: u8, rs2: u8},
+    REMU {rd: u8, rs1: u8, rs2: u8},
+
+    /* RV64M */
+    MULW {rd: u8, rs1: u8, rs2: u8},
+    DIVW {rd: u8, rs1: u8, rs2: u8},
+    DIVUW {rd: u8, rs1: u8, rs2: u8},
+    REMW {rd: u8, rs1: u8, rs2: u8},
+    REMUW {rd: u8, rs1: u8, rs2: u8},
+
+    /* RV32A */
+    LR_W {rd: u8, rs1: u8, aq: bool, rl: bool},
+    SC_W {rd: u8, rs1: u8, aq: bool, rl: bool},
+    AMOSWAP_W {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOADD_W {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOXOR_W {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOAND_W {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOOR_W {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOMIN_W {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOMAX_W {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOMINU_W {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOMAXU_W {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+
+    /* RV64A */
+    LR_D {rd: u8, rs1: u8, aq: bool, rl: bool},
+    SC_D {rd: u8, rs1: u8, aq: bool, rl: bool},
+    AMOSWAP_D {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOADD_D {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOXOR_D {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOAND_D {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOOR_D {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOMIN_D {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOMAX_D {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOMINU_D {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+    AMOMAXU_D {rd: u8, rs1: u8, rs2: u8, aq: bool, rl: bool},
+
+    /* RV32F */
+    FLW {rd: u8, rs1: u8, imm: i16},
+    FSW {rd: u8, rs1: u8, imm: i16},
+    FMADD_S {rd: u8, rs1: u8, rs2: u8, rs3: u8, rm: FpRoundingMode},
+    FMSUB_S {rd: u8, rs1: u8, rs2: u8, rs3: u8, rm: FpRoundingMode},
+    FNMSUB_S {rd: u8, rs1: u8, rs2: u8, rs3: u8, rm: FpRoundingMode},
+    FNMADD_S {rd: u8, rs1: u8, rs2: u8, rs3: u8, rm: FpRoundingMode},
+    FADD_S {rd: u8, rs1: u8, rs2: u8, rm: FpRoundingMode},
+    FSUB_S {rd: u8, rs1: u8, rs2: u8, rm: FpRoundingMode},
+    FMUL_S {rd: u8, rs1: u8, rs2: u8, rm: FpRoundingMode},
+    FDIV_S {rd: u8, rs1: u8, rs2: u8, rm: FpRoundingMode},
+    FSQRT_S {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FSGNJ_S {rd: u8, rs1: u8, rs2: u8},
+    FSGNJN_S {rd: u8, rs1: u8, rs2: u8},
+    FSGNJX_S {rd: u8, rs1: u8, rs2: u8},
+    FMIN_S {rd: u8, rs1: u8, rs2: u8},
+    FMAX_S {rd: u8, rs1: u8, rs2: u8},
+    FCVT_W_S {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FCVT_WU_S {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FMV_X_S {rd: u8, rs1: u8},
+    FEQ_S {rd: u8, rs1: u8, rs2: u8},
+    FLT_S {rd: u8, rs1: u8, rs2: u8},
+    FLE_S {rd: u8, rs1: u8, rs2: u8},
+    FCLASS_S {rd: u8, rs1: u8},
+    FCVT_S_W {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FCVT_S_WU {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FMV_S_X {rd: u8, rs1: u8},
+
+    /* RV64F */
+    FCVT_L_S {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FCVT_LU_S {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FCVT_S_L {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FCVT_S_LU {rd: u8, rs1: u8, rm: FpRoundingMode},
+
+    /* RV32D */
+    FLD {rd: u8, rs1: u8, imm: i16},
+    FSD {rd: u8, rs1: u8, imm: i16},
+    FMADD_D {rd: u8, rs1: u8, rs2: u8, rs3: u8, rm: FpRoundingMode},
+    FMSUB_D {rd: u8, rs1: u8, rs2: u8, rs3: u8, rm: FpRoundingMode},
+    FNMSUB_D {rd: u8, rs1: u8, rs2: u8, rs3: u8, rm: FpRoundingMode},
+    FNMADD_D {rd: u8, rs1: u8, rs2: u8, rs3: u8, rm: FpRoundingMode},
+    FADD_D {rd: u8, rs1: u8, rs2: u8, rm: FpRoundingMode},
+    FSUB_D {rd: u8, rs1: u8, rs2: u8, rm: FpRoundingMode},
+    FMUL_D {rd: u8, rs1: u8, rs2: u8, rm: FpRoundingMode},
+    FDIV_D {rd: u8, rs1: u8, rs2: u8, rm: FpRoundingMode},
+    FSQRT_D {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FSGNJ_D {rd: u8, rs1: u8, rs2: u8},
+    FSGNJN_D {rd: u8, rs1: u8, rs2: u8},
+    FSGNJX_D {rd: u8, rs1: u8, rs2: u8},
+    FMIN_D {rd: u8, rs1: u8, rs2: u8},
+    FMAX_D {rd: u8, rs1: u8, rs2: u8},
+    FCVT_S_D {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FCVT_D_S {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FEQ_D {rd: u8, rs1: u8, rs2: u8},
+    FLT_D {rd: u8, rs1: u8, rs2: u8},
+    FLE_D {rd: u8, rs1: u8, rs2: u8},
+    FCLASS_D {rd: u8, rs1: u8},
+    FCVT_W_D {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FCVT_WU_D {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FCVT_D_W {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FCVT_D_WU {rd: u8, rs1: u8, rm: FpRoundingMode},
+
+    /* RV64F */
+    FCVT_L_D {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FCVT_LU_D {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FMV_X_D {rd: u8, rs1: u8},
+    FCVT_D_L {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FCVT_D_LU {rd: u8, rs1: u8, rm: FpRoundingMode},
+    FMV_D_X {rd: u8, rs1: u8},
 }
 
 fn get_i_imm12(word : u32) -> i16 {
