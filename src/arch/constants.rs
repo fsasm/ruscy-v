@@ -47,31 +47,43 @@ pub mod funct3 {
     pub const LB      : u8 = 0b000;
     pub const LH      : u8 = 0b001;
     pub const LW      : u8 = 0b010;
+    pub const LD      : u8 = 0b011;
     pub const LBU     : u8 = 0b100;
     pub const LHU     : u8 = 0b101;
+    pub const LWU     : u8 = 0b110;
 
     pub const SB      : u8 = 0b000;
     pub const SH      : u8 = 0b001;
     pub const SW      : u8 = 0b010;
+    pub const SD      : u8 = 0b011;
 
     pub const ADDI    : u8 = 0b000;
+    pub const ADDIW   : u8 = 0b000;
     pub const SLTI    : u8 = 0b010;
     pub const SLTIU   : u8 = 0b011;
     pub const XORI    : u8 = 0b100;
     pub const ORI     : u8 = 0b110;
     pub const ANDI    : u8 = 0b111;
     pub const SLLI    : u8 = 0b001;
+    pub const SLLIW   : u8 = 0b001;
     pub const SRLI    : u8 = 0b101;
+    pub const SRLIW   : u8 = 0b101;
     pub const SRAI    : u8 = 0b101;
+    pub const SRAIW   : u8 = 0b101;
 
     pub const ADD     : u8 = 0b000;
+    pub const ADDW    : u8 = 0b000;
     pub const SUB     : u8 = 0b000;
+    pub const SUBW    : u8 = 0b000;
     pub const SLL     : u8 = 0b001;
+    pub const SLLW    : u8 = 0b001;
     pub const SLT     : u8 = 0b010;
     pub const SLTU    : u8 = 0b011;
     pub const XOR     : u8 = 0b100;
     pub const SRL     : u8 = 0b101;
+    pub const SRLW    : u8 = 0b101;
     pub const SRA     : u8 = 0b101;
+    pub const SRAW    : u8 = 0b101;
     pub const OR      : u8 = 0b110;
     pub const AND     : u8 = 0b111;
 
@@ -88,19 +100,27 @@ pub mod funct3 {
 }
 
 pub mod funct7 {
-    pub const SLLI : u8 = 0b0000000;
-    pub const SRLI : u8 = 0b0000000;
-    pub const SRAI : u8 = 0b0100000;
-    pub const ADD  : u8 = 0b0000000;
-    pub const SUB  : u8 = 0b0100000;
-    pub const SLL  : u8 = 0b0000000;
-    pub const SLT  : u8 = 0b0000000;
-    pub const SLTU : u8 = 0b0000000;
-    pub const XOR  : u8 = 0b0000000;
-    pub const SRL  : u8 = 0b0000000;
-    pub const SRA  : u8 = 0b0100000;
-    pub const OR   : u8 = 0b0000000;
-    pub const AND  : u8 = 0b0000000;
+    pub const SLLI  : u8 = 0b0000000;
+    pub const SLLIW : u8 = 0b0000000;
+    pub const SRLI  : u8 = 0b0000000;
+    pub const SRLIW : u8 = 0b0000000;
+    pub const SRAI  : u8 = 0b0100000;
+    pub const SRAIW : u8 = 0b0100000;
+    pub const ADD   : u8 = 0b0000000;
+    pub const ADDW  : u8 = 0b0000000;
+    pub const SUB   : u8 = 0b0100000;
+    pub const SUBW  : u8 = 0b0100000;
+    pub const SLL   : u8 = 0b0000000;
+    pub const SLLW  : u8 = 0b0000000;
+    pub const SLT   : u8 = 0b0000000;
+    pub const SLTU  : u8 = 0b0000000;
+    pub const XOR   : u8 = 0b0000000;
+    pub const SRL   : u8 = 0b0000000;
+    pub const SRLW  : u8 = 0b0000000;
+    pub const SRA   : u8 = 0b0100000;
+    pub const SRAW  : u8 = 0b0100000;
+    pub const OR    : u8 = 0b0000000;
+    pub const AND   : u8 = 0b0000000;
 }
 
 pub mod mul_div {
@@ -113,6 +133,12 @@ pub mod mul_div {
         pub const DIVU   : u8 = 0b101;
         pub const REM    : u8 = 0b110;
         pub const REMU   : u8 = 0b111;
+        pub const MULW   : u8 = 0b000;
+        pub const DIVW   : u8 = 0b100;
+        pub const DIVUW  : u8 = 0b101;
+        pub const REMW   : u8 = 0b110;
+        pub const REMUW  : u8 = 0b111;
+
     }
 
     pub mod funct7 {
@@ -124,6 +150,11 @@ pub mod mul_div {
         pub const DIVU   : u8 = 0b0000001;
         pub const REM    : u8 = 0b0000001;
         pub const REMU   : u8 = 0b0000001;
+        pub const MULW   : u8 = 0b0000001;
+        pub const DIVW   : u8 = 0b0000001;
+        pub const DIVUW  : u8 = 0b0000001;
+        pub const REMW   : u8 = 0b0000001;
+        pub const REMUW  : u8 = 0b0000001;
     }
 }
 

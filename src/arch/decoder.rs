@@ -74,7 +74,7 @@ pub enum Instruction {
     /* RV64I */
     LWU {rd: u8, rs1: u8, imm: i16},
     LD {rd: u8, rs1: u8, imm: i16},
-    SD {rd: u8, rs1: u8, imm: i16},
+    SD {rs1: u8, rs2: u8, imm: i16},
     ADDIW {rd: u8, rs1: u8, imm: i16},
     SLLIW {rd: u8, rs1: u8, shamt: u8},
     SRLIW {rd: u8, rs1: u8, shamt: u8},
@@ -260,83 +260,78 @@ impl Instruction {
             return Err(());
         }
 
-        let op : u8 = ((instr >> 2) & 0x1F) as u8;
-        let rd : u8 = ((instr >> 7) & 0x1F) as u8;
-        let rs1 : u8 = ((instr >> 15) & 0x1F) as u8;
-        let rs2 : u8 = ((instr >> 20) & 0x1F) as u8;
-        let funct3 : u8 = ((instr >> 12) & 0x07) as u8;
-        let funct7 : u8 = ((instr >> 25) & 0x7F) as u8;
-        let csr : u16 = ((instr >> 20) & 0x0FFF) as u16;
-        let i_imm12 : i16 = get_i_imm12(instr);
-        let s_imm12 : i16 = get_s_imm12(instr);
-        let sb_imm12 : i16 = get_sb_imm12(instr);
+        let op        : u8 = ((instr >> 2) & 0x1F) as u8;
+        let rd        : u8 = ((instr >> 7) & 0x1F) as u8;
+        let rs1       : u8 = ((instr >> 15) & 0x1F) as u8;
+        let rs2       : u8 = ((instr >> 20) & 0x1F) as u8;
+        let shamt     : u8 = ((instr >> 20) & 0x1F) as u8;
+        let shamt64   : u8 = ((instr >> 20) & 0x3F) as u8;
+        let funct3    : u8 = ((instr >> 12) & 0x07) as u8;
+        let funct7    : u8 = ((instr >> 25) & 0x7F) as u8;
+        let csr       : u16 = ((instr >> 20) & 0x0FFF) as u16;
+        let i_imm12   : i16 = get_i_imm12(instr);
+        let s_imm12   : i16 = get_s_imm12(instr);
+        let sb_imm12  : i16 = get_sb_imm12(instr);
         let jal_imm20 : i32 = get_jal_imm20(instr);
 
         /* TODO separate decode32 to decode_rv32i, decode_rv64i, decode_rv32m, 
          * and so on. decode32 first tries to decode the extensions and then
          * the base ISA, first 64 bit and then 32 bit. */
 
-        match (op, funct3, funct7) {
-            (opcode::LUI, _, _) => Ok(Instruction::LUI {rd: rd, imm: (instr & 0xFFFFF000) as i32}), 
-            (opcode::AUIPC, _, _) => Ok(Instruction::AUIPC {rd: rd, imm: (instr & 0xFFFFF000) as i32}), 
-            (opcode::JAL, _, _) => Ok(Instruction::JAL {rd: rd, imm: jal_imm20}), 
-            (opcode::JALR, funct3::JALR, _) => Ok(Instruction::JALR {rd: rd, rs1: rs1, imm: i_imm12}), 
-            (opcode::BRANCH, funct3::BEQ, _) => Ok(Instruction::BEQ {rs1: rs1, rs2: rs2, imm: sb_imm12}),
-            (opcode::BRANCH, funct3::BNE, _) => Ok(Instruction::BNE {rs1: rs1, rs2: rs2, imm: sb_imm12}),
-            (opcode::BRANCH, funct3::BLT, _) => Ok(Instruction::BLT {rs1: rs1, rs2: rs2, imm: sb_imm12}),
-            (opcode::BRANCH, funct3::BGE, _) => Ok(Instruction::BGE {rs1: rs1, rs2: rs2, imm: sb_imm12}),
-            (opcode::BRANCH, funct3::BLTU, _) => Ok(Instruction::BLTU {rs1: rs1, rs2: rs2, imm: sb_imm12}),
-            (opcode::BRANCH, funct3::BGEU, _) => Ok(Instruction::BGEU {rs1: rs1, rs2: rs2, imm: sb_imm12}),
-            (opcode::LOAD, funct3::LB, _) => Ok(Instruction::LB {rd: rd, rs1: rs1, imm: i_imm12}), 
-            (opcode::LOAD, funct3::LH, _) => Ok(Instruction::LH {rd: rd, rs1: rs1, imm: i_imm12}), 
-            (opcode::LOAD, funct3::LW, _) => Ok(Instruction::LW {rd: rd, rs1: rs1, imm: i_imm12}), 
-            (opcode::LOAD, funct3::LBU, _) => Ok(Instruction::LBU {rd: rd, rs1: rs1, imm: i_imm12}), 
-            (opcode::LOAD, funct3::LHU, _) => Ok(Instruction::LHU {rd: rd, rs1: rs1, imm: i_imm12}), 
-            (opcode::STORE, funct3::SB, _) => Ok(Instruction::SB {rs1: rs1, rs2: rs2, imm: s_imm12}),
-            (opcode::STORE, funct3::SH, _) => Ok(Instruction::SH {rs1: rs1, rs2: rs2, imm: s_imm12}),
-            (opcode::STORE, funct3::SW, _) => Ok(Instruction::SW {rs1: rs1, rs2: rs2, imm: s_imm12}),
-            (opcode::OP_IMM, funct3::ADDI, _) => Ok(Instruction::ADDI {rd: rd, rs1: rs1, imm: i_imm12}),
-            (opcode::OP_IMM, funct3::SLTI, _) => Ok(Instruction::SLTI {rd: rd, rs1: rs1, imm: i_imm12}),
-            (opcode::OP_IMM, funct3::SLTIU, _) => Ok(Instruction::SLTIU {rd: rd, rs1: rs1, imm: i_imm12}),
-            (opcode::OP_IMM, funct3::XORI, _) => Ok(Instruction::XORI {rd: rd, rs1: rs1, imm: i_imm12}),
-            (opcode::OP_IMM, funct3::ORI, _) => Ok(Instruction::ORI {rd: rd, rs1: rs1, imm: i_imm12}),
-            (opcode::OP_IMM, funct3::ANDI, _) => Ok(Instruction::ANDI {rd: rd, rs1: rs1, imm: i_imm12}),
-            (opcode::OP_IMM, funct3::SLLI, _) => {
-                if rv64 && (funct7 & 0x7E) == (funct7::SLLI & 0x7E) {
-                    let shamt = rs2 | (((instr >> 20) & 0x10) as u8);
-                    Ok(Instruction::SLLI {rd: rd, rs1: rs1, shamt: shamt})
-                } else if !rv64 && funct7 == funct7::SLLI {
-                    Ok(Instruction::SLLI {rd: rd, rs1: rs1, shamt: rs2})
-                } else {
-                    Err(())
-                }
-            },
-            (opcode::OP_IMM, funct3::SRLI, _) => {
-                if rv64 && (funct7 & 0x7E) == (funct7::SRLI & 0x7E) {
-                    let shamt = rs2 | (((instr >> 20) & 0x10) as u8);
-                    Ok(Instruction::SRLI {rd: rd, rs1: rs1, shamt: shamt})
-                } else if !rv64 && funct7 == funct7::SRLI {
-                    Ok(Instruction::SRLI {rd: rd, rs1: rs1, shamt: rs2})
-                } else if rv64 && (funct7 & 0x7E) == (funct7::SRAI & 0x7E) {
-                    let shamt = rs2 | (((instr >> 20) & 0x10) as u8);
-                    Ok(Instruction::SRAI {rd: rd, rs1: rs1, shamt: shamt})
-                } else if !rv64 && funct7 == funct7::SRAI {
-                    Ok(Instruction::SRAI {rd: rd, rs1: rs1, shamt: rs2})
-                } else {
-                    Err(())
-                }
-            },
-            (opcode::OP, funct3::ADD, funct7::ADD) => Ok(Instruction::ADD {rd: rd, rs1: rs1, rs2: rs2}),
-            (opcode::OP, funct3::SUB, funct7::SUB) => Ok(Instruction::SUB {rd: rd, rs1: rs1, rs2: rs2}),
-            (opcode::OP, funct3::SLL, funct7::SLL) => Ok(Instruction::SLL {rd: rd, rs1: rs1, rs2: rs2}),
-            (opcode::OP, funct3::SLT, funct7::SLT) => Ok(Instruction::SLT {rd: rd, rs1: rs1, rs2: rs2}),
-            (opcode::OP, funct3::SLTU, funct7::SLTU) => Ok(Instruction::SLTU {rd: rd, rs1: rs1, rs2: rs2}),
-            (opcode::OP, funct3::XOR, funct7::XOR) => Ok(Instruction::XOR {rd: rd, rs1: rs1, rs2: rs2}),
-            (opcode::OP, funct3::SRL, funct7::SRL) => Ok(Instruction::SRL {rd: rd, rs1: rs1, rs2: rs2}),
-            (opcode::OP, funct3::SRA, funct7::SRA) => Ok(Instruction::SRA {rd: rd, rs1: rs1, rs2: rs2}),
-            (opcode::OP, funct3::OR, funct7::OR) => Ok(Instruction::OR {rd: rd, rs1: rs1, rs2: rs2}),
-            (opcode::OP, funct3::AND, funct7::AND) => Ok(Instruction::AND {rd: rd, rs1: rs1, rs2: rs2}),
-            (opcode::MISC_MEM, _, _) => {
+        match (rv64, op, funct3, funct7) {
+            (_, opcode::LUI, _, _) => Ok(Instruction::LUI {rd: rd, imm: (instr & 0xFFFFF000) as i32}), 
+            (_, opcode::AUIPC, _, _) => Ok(Instruction::AUIPC {rd: rd, imm: (instr & 0xFFFFF000) as i32}), 
+            (_, opcode::JAL, _, _) => Ok(Instruction::JAL {rd: rd, imm: jal_imm20}), 
+            (_, opcode::JALR, funct3::JALR, _) => Ok(Instruction::JALR {rd: rd, rs1: rs1, imm: i_imm12}), 
+            (_, opcode::BRANCH, funct3::BEQ, _) => Ok(Instruction::BEQ {rs1: rs1, rs2: rs2, imm: sb_imm12}),
+            (_, opcode::BRANCH, funct3::BNE, _) => Ok(Instruction::BNE {rs1: rs1, rs2: rs2, imm: sb_imm12}),
+            (_, opcode::BRANCH, funct3::BLT, _) => Ok(Instruction::BLT {rs1: rs1, rs2: rs2, imm: sb_imm12}),
+            (_, opcode::BRANCH, funct3::BGE, _) => Ok(Instruction::BGE {rs1: rs1, rs2: rs2, imm: sb_imm12}),
+            (_, opcode::BRANCH, funct3::BLTU, _) => Ok(Instruction::BLTU {rs1: rs1, rs2: rs2, imm: sb_imm12}),
+            (_, opcode::BRANCH, funct3::BGEU, _) => Ok(Instruction::BGEU {rs1: rs1, rs2: rs2, imm: sb_imm12}),
+            (_, opcode::LOAD, funct3::LB, _) => Ok(Instruction::LB {rd: rd, rs1: rs1, imm: i_imm12}), 
+            (_, opcode::LOAD, funct3::LH, _) => Ok(Instruction::LH {rd: rd, rs1: rs1, imm: i_imm12}), 
+            (_, opcode::LOAD, funct3::LW, _) => Ok(Instruction::LW {rd: rd, rs1: rs1, imm: i_imm12}), 
+            (true, opcode::LOAD, funct3::LD, _) => Ok(Instruction::LD {rd: rd, rs1: rs1, imm: i_imm12}), 
+            (_, opcode::LOAD, funct3::LBU, _) => Ok(Instruction::LBU {rd: rd, rs1: rs1, imm: i_imm12}), 
+            (_, opcode::LOAD, funct3::LHU, _) => Ok(Instruction::LHU {rd: rd, rs1: rs1, imm: i_imm12}), 
+            (true, opcode::LOAD, funct3::LWU, _) => Ok(Instruction::LWU {rd: rd, rs1: rs1, imm: i_imm12}), 
+            (_, opcode::STORE, funct3::SB, _) => Ok(Instruction::SB {rs1: rs1, rs2: rs2, imm: s_imm12}),
+            (_, opcode::STORE, funct3::SH, _) => Ok(Instruction::SH {rs1: rs1, rs2: rs2, imm: s_imm12}),
+            (_, opcode::STORE, funct3::SW, _) => Ok(Instruction::SW {rs1: rs1, rs2: rs2, imm: s_imm12}),
+            (true, opcode::STORE, funct3::SD, _) => Ok(Instruction::SD {rs1: rs1, rs2: rs2, imm: s_imm12}),
+            (_, opcode::OP_IMM, funct3::ADDI, _) => Ok(Instruction::ADDI {rd: rd, rs1: rs1, imm: i_imm12}),
+            (true, opcode::OP_IMM_32, funct3::ADDIW, _) => Ok(Instruction::ADDIW {rd: rd, rs1: rs1, imm: i_imm12}),
+            (_, opcode::OP_IMM, funct3::SLTI, _) => Ok(Instruction::SLTI {rd: rd, rs1: rs1, imm: i_imm12}),
+            (_, opcode::OP_IMM, funct3::SLTIU, _) => Ok(Instruction::SLTIU {rd: rd, rs1: rs1, imm: i_imm12}),
+            (_, opcode::OP_IMM, funct3::XORI, _) => Ok(Instruction::XORI {rd: rd, rs1: rs1, imm: i_imm12}),
+            (_, opcode::OP_IMM, funct3::ORI, _) => Ok(Instruction::ORI {rd: rd, rs1: rs1, imm: i_imm12}),
+            (_, opcode::OP_IMM, funct3::ANDI, _) => Ok(Instruction::ANDI {rd: rd, rs1: rs1, imm: i_imm12}),
+            (false, opcode::OP_IMM, funct3::SLLI, funct7::SLLI) => Ok(Instruction::SLLI {rd: rd, rs1: rs1, shamt: shamt}),
+            (true, opcode::OP_IMM_32, funct3::SLLIW, funct7::SLLIW) => Ok(Instruction::SLLIW {rd: rd, rs1: rs1, shamt: shamt}),
+            (true, opcode::OP_IMM, funct3::SLLI, funct7::SLLI) | (true, opcode::OP_IMM, funct3::SLLI, 0b0000001) => Ok(Instruction::SLLI {rd: rd, rs1: rs1, shamt: shamt64}),
+            (false, opcode::OP_IMM, funct3::SRLI, funct7::SRLI) => Ok(Instruction::SRLI {rd: rd, rs1: rs1, shamt: shamt}),
+            (true, opcode::OP_IMM_32, funct3::SRLIW, funct7::SRLIW) => Ok(Instruction::SRLIW {rd: rd, rs1: rs1, shamt: shamt}),
+            (true, opcode::OP_IMM, funct3::SRLI, funct7::SRLI) | (true, opcode::OP_IMM, funct3::SRLI, 0b0000001) => Ok(Instruction::SRLI {rd: rd, rs1: rs1, shamt: shamt64}),
+            (false, opcode::OP_IMM, funct3::SRAI, funct7::SRAI) => Ok(Instruction::SRAI {rd: rd, rs1: rs1, shamt: shamt}),
+            (true, opcode::OP_IMM_32, funct3::SRAIW, funct7::SRAIW) => Ok(Instruction::SRAIW {rd: rd, rs1: rs1, shamt: shamt}),
+            (true, opcode::OP_IMM, funct3::SRAI, funct7::SRAI) | (true, opcode::OP_IMM, funct3::SRAI, 0b010000) => Ok(Instruction::SRAI {rd: rd, rs1: rs1, shamt: shamt64}),
+            (_, opcode::OP, funct3::ADD, funct7::ADD) => Ok(Instruction::ADD {rd: rd, rs1: rs1, rs2: rs2}),
+            (true, opcode::OP_32, funct3::ADDW, funct7::ADDW) => Ok(Instruction::ADDW {rd: rd, rs1: rs1, rs2: rs2}),
+            (_, opcode::OP, funct3::SUB, funct7::SUB) => Ok(Instruction::SUB {rd: rd, rs1: rs1, rs2: rs2}),
+            (true, opcode::OP_32, funct3::SUBW, funct7::SUBW) => Ok(Instruction::SUBW {rd: rd, rs1: rs1, rs2: rs2}),
+            (_, opcode::OP, funct3::SLL, funct7::SLL) => Ok(Instruction::SLL {rd: rd, rs1: rs1, rs2: rs2}),
+            (true, opcode::OP_32, funct3::SLLW, funct7::SLLW) => Ok(Instruction::SLLW {rd: rd, rs1: rs1, rs2: rs2}),
+            (_, opcode::OP, funct3::SLT, funct7::SLT) => Ok(Instruction::SLT {rd: rd, rs1: rs1, rs2: rs2}),
+            (_, opcode::OP, funct3::SLTU, funct7::SLTU) => Ok(Instruction::SLTU {rd: rd, rs1: rs1, rs2: rs2}),
+            (_, opcode::OP, funct3::XOR, funct7::XOR) => Ok(Instruction::XOR {rd: rd, rs1: rs1, rs2: rs2}),
+            (_, opcode::OP, funct3::SRL, funct7::SRL) => Ok(Instruction::SRL {rd: rd, rs1: rs1, rs2: rs2}),
+            (true, opcode::OP_32, funct3::SRLW, funct7::SRLW) => Ok(Instruction::SRLW {rd: rd, rs1: rs1, rs2: rs2}),
+            (_, opcode::OP, funct3::SRA, funct7::SRA) => Ok(Instruction::SRA {rd: rd, rs1: rs1, rs2: rs2}),
+            (true, opcode::OP_32, funct3::SRAW, funct7::SRAW) => Ok(Instruction::SRAW {rd: rd, rs1: rs1, rs2: rs2}),
+            (_, opcode::OP, funct3::OR, funct7::OR) => Ok(Instruction::OR {rd: rd, rs1: rs1, rs2: rs2}),
+            (_, opcode::OP, funct3::AND, funct7::AND) => Ok(Instruction::AND {rd: rd, rs1: rs1, rs2: rs2}),
+            (_, opcode::MISC_MEM, _, _) => {
                 if rd == 0 && funct3 == 0 && rs1 == 0 && (instr >> 28) == 0 {
                     Ok(Instruction::FENCE {succ: ((instr >> 20) & 0x0F) as u8,
                         pred: ((instr >> 24) & 0x0F) as u8})
@@ -346,7 +341,7 @@ impl Instruction {
                     Err(())
                 }
             },
-            (opcode::SYSTEM, funct3::ECALL, _) => {
+            (_, opcode::SYSTEM, funct3::ECALL, _) => {
                 if instr == 0x00000073 {
                     Ok(Instruction::ECALL)
                 } else if instr == 0x00010073 {
@@ -355,12 +350,12 @@ impl Instruction {
                     Err(())
                 }
             },
-            (opcode::SYSTEM, funct3::CSRRW, _) => Ok(Instruction::CSRRW {rd: rd, rs1: rs1, csr: csr}),
-            (opcode::SYSTEM, funct3::CSRRS, _) => Ok(Instruction::CSRRS {rd: rd, rs1: rs1, csr: csr}),
-            (opcode::SYSTEM, funct3::CSRRC, _) => Ok(Instruction::CSRRC {rd: rd, rs1: rs1, csr: csr}),
-            (opcode::SYSTEM, funct3::CSRRWI, _) => Ok(Instruction::CSRRWI {rd: rd, zimm: rs1, csr: csr}),
-            (opcode::SYSTEM, funct3::CSRRSI, _) => Ok(Instruction::CSRRSI {rd: rd, zimm: rs1, csr: csr}),
-            (opcode::SYSTEM, funct3::CSRRCI, _) => Ok(Instruction::CSRRCI {rd: rd, zimm: rs1, csr: csr}),
+            (_, opcode::SYSTEM, funct3::CSRRW, _) => Ok(Instruction::CSRRW {rd: rd, rs1: rs1, csr: csr}),
+            (_, opcode::SYSTEM, funct3::CSRRS, _) => Ok(Instruction::CSRRS {rd: rd, rs1: rs1, csr: csr}),
+            (_, opcode::SYSTEM, funct3::CSRRC, _) => Ok(Instruction::CSRRC {rd: rd, rs1: rs1, csr: csr}),
+            (_, opcode::SYSTEM, funct3::CSRRWI, _) => Ok(Instruction::CSRRWI {rd: rd, zimm: rs1, csr: csr}),
+            (_, opcode::SYSTEM, funct3::CSRRSI, _) => Ok(Instruction::CSRRSI {rd: rd, zimm: rs1, csr: csr}),
+            (_, opcode::SYSTEM, funct3::CSRRCI, _) => Ok(Instruction::CSRRCI {rd: rd, zimm: rs1, csr: csr}),
             _ => Err(())
         }
     }
