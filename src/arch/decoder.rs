@@ -254,7 +254,8 @@ fn get_jal_imm20(word: u32) -> i32 {
 }
 
 impl Instruction {
-    pub fn decode32(instr : u32) -> Result<Instruction, ()> {
+    /* decodes an 32-bit sized instruction (RV32I and RV64I) */
+    pub fn decode32(instr : u32, rv64: bool) -> Result<Instruction, ()> {
         if (instr & 0x03) != 0x03 {
             return Err(());
         }
@@ -270,6 +271,10 @@ impl Instruction {
         let s_imm12 : i16 = get_s_imm12(instr);
         let sb_imm12 : i16 = get_sb_imm12(instr);
         let jal_imm20 : i32 = get_jal_imm20(instr);
+
+        /* TODO separate decode32 to decode_rv32i, decode_rv64i, decode_rv32m, 
+         * and so on. decode32 first tries to decode the extensions and then
+         * the base ISA, first 64 bit and then 32 bit. */
 
         match (op, funct3, funct7) {
             (opcode::LUI, _, _) => Ok(Instruction::LUI {rd: rd, imm: (instr & 0xFFFFF000) as i32}), 
@@ -296,9 +301,31 @@ impl Instruction {
             (opcode::OP_IMM, funct3::XORI, _) => Ok(Instruction::XORI {rd: rd, rs1: rs1, imm: i_imm12}),
             (opcode::OP_IMM, funct3::ORI, _) => Ok(Instruction::ORI {rd: rd, rs1: rs1, imm: i_imm12}),
             (opcode::OP_IMM, funct3::ANDI, _) => Ok(Instruction::ANDI {rd: rd, rs1: rs1, imm: i_imm12}),
-            (opcode::OP_IMM, funct3::SLLI, funct7::SLLI) => Ok(Instruction::SLLI {rd: rd, rs1: rs1, shamt: rs2}),
-            (opcode::OP_IMM, funct3::SRLI, funct7::SRLI) => Ok(Instruction::SRLI {rd: rd, rs1: rs1, shamt: rs2}),
-            (opcode::OP_IMM, funct3::SRAI, funct7::SRAI) => Ok(Instruction::SRAI {rd: rd, rs1: rs1, shamt: rs2}),
+            (opcode::OP_IMM, funct3::SLLI, _) => {
+                if rv64 && (funct7 & 0x7E) == (funct7::SLLI & 0x7E) {
+                    let shamt = rs2 | (((instr >> 20) & 0x10) as u8);
+                    Ok(Instruction::SLLI {rd: rd, rs1: rs1, shamt: shamt})
+                } else if !rv64 && funct7 == funct7::SLLI {
+                    Ok(Instruction::SLLI {rd: rd, rs1: rs1, shamt: rs2})
+                } else {
+                    Err(())
+                }
+            },
+            (opcode::OP_IMM, funct3::SRLI, _) => {
+                if rv64 && (funct7 & 0x7E) == (funct7::SRLI & 0x7E) {
+                    let shamt = rs2 | (((instr >> 20) & 0x10) as u8);
+                    Ok(Instruction::SRLI {rd: rd, rs1: rs1, shamt: shamt})
+                } else if !rv64 && funct7 == funct7::SRLI {
+                    Ok(Instruction::SRLI {rd: rd, rs1: rs1, shamt: rs2})
+                } else if rv64 && (funct7 & 0x7E) == (funct7::SRAI & 0x7E) {
+                    let shamt = rs2 | (((instr >> 20) & 0x10) as u8);
+                    Ok(Instruction::SRAI {rd: rd, rs1: rs1, shamt: shamt})
+                } else if !rv64 && funct7 == funct7::SRAI {
+                    Ok(Instruction::SRAI {rd: rd, rs1: rs1, shamt: rs2})
+                } else {
+                    Err(())
+                }
+            },
             (opcode::OP, funct3::ADD, funct7::ADD) => Ok(Instruction::ADD {rd: rd, rs1: rs1, rs2: rs2}),
             (opcode::OP, funct3::SUB, funct7::SUB) => Ok(Instruction::SUB {rd: rd, rs1: rs1, rs2: rs2}),
             (opcode::OP, funct3::SLL, funct7::SLL) => Ok(Instruction::SLL {rd: rd, rs1: rs1, rs2: rs2}),
@@ -346,34 +373,34 @@ mod test {
     #[test]
     fn test_decode32() {
         // LB x14, 267(x3)
-        assert_eq!(Instruction::decode32(0x10B18703), Ok(Instruction::LB{rd: 14, rs1: 3, imm: 267}));
+        assert_eq!(Instruction::decode32(0x10B18703, false), Ok(Instruction::LB{rd: 14, rs1: 3, imm: 267}));
     
         // ADDI x30, x20, -1036
-        assert_eq!(Instruction::decode32(0xBF4A0F13), Ok(Instruction::ADDI{rd: 30, rs1: 20, imm: -1036}));
+        assert_eq!(Instruction::decode32(0xBF4A0F13, false), Ok(Instruction::ADDI{rd: 30, rs1: 20, imm: -1036}));
     
         // ORI x10, x12, -33
-        assert_eq!(Instruction::decode32(0xFDF66513), Ok(Instruction::ORI{rd: 10, rs1: 12, imm: -33}));
+        assert_eq!(Instruction::decode32(0xFDF66513, false), Ok(Instruction::ORI{rd: 10, rs1: 12, imm: -33}));
     
         // SB x18, -1654(x6)
-        assert_eq!(Instruction::decode32(0x99230523), Ok(Instruction::SB{rs1: 6, rs2: 18, imm: -1654}));
+        assert_eq!(Instruction::decode32(0x99230523, false), Ok(Instruction::SB{rs1: 6, rs2: 18, imm: -1654}));
     
         // SH x27, -1069(x21)
-        assert_eq!(Instruction::decode32(0xBDBA99A3), Ok(Instruction::SH{rs1: 21, rs2: 27, imm: -1069}));
+        assert_eq!(Instruction::decode32(0xBDBA99A3, false), Ok(Instruction::SH{rs1: 21, rs2: 27, imm: -1069}));
     
         // SW x5, 1951(x8)
-        assert_eq!(Instruction::decode32(0x78542FA3), Ok(Instruction::SW{rs1: 8, rs2: 5, imm: 1951}));
+        assert_eq!(Instruction::decode32(0x78542FA3, false), Ok(Instruction::SW{rs1: 8, rs2: 5, imm: 1951}));
 
         // BEQ x19, x14, 438
-        assert_eq!(Instruction::decode32(0x36E98663), Ok(Instruction::BEQ{rs1: 19, rs2: 14, imm: 876}));
+        assert_eq!(Instruction::decode32(0x36E98663, false), Ok(Instruction::BEQ{rs1: 19, rs2: 14, imm: 876}));
 
         // BGE x7, x11, 2015
-        assert_eq!(Instruction::decode32(0x7AB3DFE3), Ok(Instruction::BGE{rs1: 7, rs2: 11, imm: 4030}));
+        assert_eq!(Instruction::decode32(0x7AB3DFE3, false), Ok(Instruction::BGE{rs1: 7, rs2: 11, imm: 4030}));
 
         // BLTU x17, x6, -885
-        assert_eq!(Instruction::decode32(0x9108EBE3), Ok(Instruction::BLTU{rs1: 17, rs2: 16, imm: -1770}));
+        assert_eq!(Instruction::decode32(0x9108EBE3, false), Ok(Instruction::BLTU{rs1: 17, rs2: 16, imm: -1770}));
 
         // JAL x9, -1760(-3520)
-        assert_eq!(Instruction::decode32(0xA40FF4EF), Ok(Instruction::JAL{rd: 9, imm: -3520}));
+        assert_eq!(Instruction::decode32(0xA40FF4EF, false), Ok(Instruction::JAL{rd: 9, imm: -3520}));
     }
 
     #[test]
@@ -506,3 +533,4 @@ mod test {
         assert_eq!((0x80000000u32 & 0xFFFFF000u32) as i32, -2147483648);
     }
 }
+
