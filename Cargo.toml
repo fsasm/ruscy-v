@@ -6,6 +6,6 @@ description = "Parser and simulator for RISC-V base instruction set"
 repository = "https://github.com/fsasm/ruscy-v"
 readme = "./README.md"
 keywords = ["risc-v", "risc", "simulator"]
-license = "MIT"
+license = "GPL-3.0"
 
 [dependencies]
